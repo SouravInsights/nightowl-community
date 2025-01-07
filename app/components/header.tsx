@@ -15,7 +15,9 @@ export function Header() {
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Moon className="w-5 h-5 text-yellow-400" />
-          <span className="font-mono font-bold text-white">night_owl</span>
+          <span className="font-mono font-bold text-white">
+            nightowl.community
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
