@@ -1,5 +1,7 @@
-import { Suspense } from "react";
-import { currentUser } from "@clerk/nextjs/server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { TraceCard } from "@/app/components/traces/trace-card";
 import { type Trace } from "@/types";
 
@@ -16,46 +18,73 @@ function TracesSkeleton() {
   );
 }
 
-// This component handles fetching and displaying traces
-async function TracesFeed() {
-  // I'll replace this with real data fetching later
-  const traces: Trace[] = [
-    {
-      id: "1",
-      type: "github",
-      user: "sarah_codes",
-      time: "2:34 AM",
-      content:
-        "Finally fixed that authentication edge case. The midnight debugging session paid off! 🎉",
-      metadata: {
-        title: "Fix auth token refresh logic",
-        url: "https://github.com/...",
-      },
-    },
-    {
-      id: "2",
-      type: "spotify",
-      user: "night_hacker",
-      time: "3:15 AM",
-      content: "Perfect coding soundtrack for this late-night session.",
-      metadata: {
-        title: "lofi beats to code to",
-        artist: "Various Artists",
-      },
-    },
-  ];
+function TracesFeed() {
+  const [traces, setTraces] = useState<Trace[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    async function fetchTraces() {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/api/traces`,
+          {
+            cache: "no-store", // Disable caching to get fresh data
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setTraces(data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTraces();
+  }, []);
+
+  if (loading) {
+    return <TracesSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500 text-center py-8">
+        Failed to load traces. Please try again later.
+      </div>
+    );
+  }
+
+  if (!traces || traces.length === 0) {
+    return (
+      <div className="text-center text-slate-500 py-8">
+        No traces yet. Be the first to leave one!
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {traces.map((trace) => (
+      {traces.map((trace: Trace) => (
         <TraceCard key={trace.id} trace={trace} />
       ))}
     </div>
   );
 }
 
-export default async function HomePage() {
-  const user = await currentUser();
+export default function HomePage() {
+  const { user } = useUser();
+  console.log("user:", user);
 
   return (
     <div className="min-h-screen">
@@ -81,14 +110,13 @@ export default async function HomePage() {
           <h2 className="text-lg font-mono font-bold text-white">
             night_traces
           </h2>
+
           <time className="text-sm text-slate-400">
             {new Date().toLocaleTimeString()}
           </time>
         </div>
 
-        <Suspense fallback={<TracesSkeleton />}>
-          <TracesFeed />
-        </Suspense>
+        <TracesFeed />
       </div>
     </div>
   );

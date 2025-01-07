@@ -9,23 +9,38 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Github, Music, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function NewTrace() {
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const createTrace = async () => {
     if (!content.trim()) return;
 
     setIsSubmitting(true);
+    setError(null);
+
     try {
-      await fetch("/api/traces", {
+      const response = await fetch("/api/traces", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ content, type: "manual" }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to create trace");
+      }
+
       setContent("");
+      router.refresh();
     } catch (error) {
       console.error("Failed to create trace:", error);
+      setError("Failed to create trace. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -38,6 +53,8 @@ export default function NewTrace() {
       </DialogHeader>
 
       <div className="space-y-4">
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <Textarea
           placeholder="What's keeping you up tonight?"
           value={content}
@@ -70,7 +87,7 @@ export default function NewTrace() {
             className="bg-slate-800 hover:bg-slate-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Create Trace
+            {isSubmitting ? "Creating..." : "Create Trace"}
           </Button>
         </div>
       </div>
