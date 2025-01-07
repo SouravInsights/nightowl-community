@@ -28,5 +28,5 @@ export interface GitHubActivity {
     repo: string;
     title: string;
   };
-  createdAt: Date;
+  createdAt: string | Date;
 }
