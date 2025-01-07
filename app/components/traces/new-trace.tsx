@@ -1,3 +1,4 @@
+// new-trace.tsx
 "use client";
 
 import { useState } from "react";
@@ -6,57 +7,89 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Github, Music, Plus, Loader2 } from "lucide-react";
+import { Github, Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { GitHubActivity } from "@/types/github";
+import { cn } from "@/lib/utils";
+
+function GitHubActivityCard({
+  activity,
+  isSelected,
+  onClick,
+}: {
+  activity: GitHubActivity;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full p-3 rounded-lg border text-left transition-all",
+        isSelected
+          ? "bg-slate-800 border-yellow-500/50 ring-1 ring-yellow-500/20"
+          : "bg-slate-900/50 border-slate-800 hover:bg-slate-800/50 hover:border-slate-700"
+      )}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <Github className="w-4 h-4 text-green-400" />
+        <span className="text-sm font-medium text-slate-300">
+          {activity.metadata.repo}
+        </span>
+      </div>
+      <p className="text-sm text-slate-300 line-clamp-2">
+        {activity.metadata.title}
+      </p>
+      <time className="text-xs text-slate-500 mt-2 block">
+        {new Date(activity.createdAt).toLocaleString()}
+      </time>
+    </button>
+  );
+}
 
 export default function NewTrace() {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showGitHubActivity, setShowGitHubActivity] = useState(false);
   const [githubActivities, setGithubActivities] = useState<GitHubActivity[]>(
     []
   );
   const [selectedActivity, setSelectedActivity] =
     useState<GitHubActivity | null>(null);
-
   const [loadingActivities, setLoadingActivities] = useState(false);
+  const [activeTab, setActiveTab] = useState<"manual" | "github">("manual");
 
-  // Fetch GitHub activities when GitHub icon is clicked
   const fetchGitHubActivities = async () => {
+    if (githubActivities.length > 0) return;
+
     setLoadingActivities(true);
     try {
       const response = await fetch("/api/traces/github", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch GitHub activities: ${response.status}`
-        );
-      }
+      if (!response.ok) throw new Error("Failed to fetch GitHub activities");
 
       const data = await response.json();
+      console.log("github data traces");
       setGithubActivities(data.traces);
     } catch (error) {
       console.error("Failed to fetch GitHub activities:", error);
+      setError("Failed to load GitHub activities");
     } finally {
       setLoadingActivities(false);
     }
   };
 
-  // When user selects an activity, pre-fill the trace content
+  console.log("githubActivities:", githubActivities);
+
   const selectActivity = (activity: GitHubActivity) => {
-    setContent(activity.metadata.title);
     setSelectedActivity(activity);
-    setShowGitHubActivity(false);
+    setContent(activity.metadata.title);
   };
 
   const createTrace = async () => {
@@ -67,17 +100,11 @@ export default function NewTrace() {
     try {
       const response = await fetch("/api/traces", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content,
           type: selectedActivity ? "github" : "manual",
-          metadata: {
-            title: selectedActivity?.metadata?.title || "",
-            repo: selectedActivity?.metadata?.repo || "",
-            url: selectedActivity?.metadata?.url || "",
-          },
+          metadata: selectedActivity?.metadata || {},
         }),
       });
 
@@ -88,102 +115,113 @@ export default function NewTrace() {
       router.refresh();
     } catch (error) {
       console.error("Failed to create trace:", error);
-      setError("Failed to create trace. Please try again.");
+      setError("Failed to create trace");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <DialogContent className="bg-slate-900 border-slate-800">
+    <DialogContent className="bg-slate-900 border-slate-800 sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle className="text-white">Leave a trace</DialogTitle>
       </DialogHeader>
 
-      <div className="space-y-4">
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-        {selectedActivity && (
-          <div className="p-2 bg-slate-800 border border-slate-700 rounded-md">
-            <p className="text-sm text-slate-400">
-              <strong>Selected Activity:</strong>
-            </p>
-            <p className="text-white">{selectedActivity.metadata.title}</p>
-            <p className="text-slate-500 text-xs">
-              {new Date(selectedActivity.createdAt || "").toLocaleString()}
-            </p>
-          </div>
-        )}
-
-        <Textarea
-          placeholder="What's keeping you up tonight?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
-          rows={3}
-        />
-
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-400 hover:text-green-400"
-              onClick={() => {
-                setShowGitHubActivity(!showGitHubActivity);
-                if (!githubActivities.length) fetchGitHubActivities();
-              }}
-              disabled={loadingActivities}
-            >
-              {loadingActivities ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Github className="w-4 h-4" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-400 hover:text-green-400"
-            >
-              <Music className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <Button
-            onClick={createTrace}
-            disabled={isSubmitting || !content.trim()}
-            className="bg-slate-800 hover:bg-slate-700"
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          setActiveTab(v as "manual" | "github");
+          if (v === "github") fetchGitHubActivities();
+        }}
+      >
+        <TabsList className="grid grid-cols-2 bg-slate-800">
+          <TabsTrigger
+            value="manual"
+            className="data-[state=active]:bg-slate-700"
           >
-            {isSubmitting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            {isSubmitting ? "Creating..." : "Create Trace"}
-          </Button>
-        </div>
+            Manual
+          </TabsTrigger>
+          <TabsTrigger
+            value="github"
+            className="data-[state=active]:bg-slate-700"
+          >
+            GitHub Activity
+          </TabsTrigger>
+        </TabsList>
 
-        {showGitHubActivity && (
-          <div className="mt-4 p-2 bg-slate-800 border border-slate-700 rounded-md space-y-2 max-h-48 overflow-y-auto">
-            {githubActivities.length > 0 ? (
-              githubActivities.map((activity) => (
-                <div
-                  key={2}
-                  className="p-2 hover:bg-slate-700 rounded-md cursor-pointer"
+        <TabsContent
+          value="manual"
+          className="space-y-4 focus-visible:outline-none"
+        >
+          <Textarea
+            placeholder="What's keeping you up tonight?"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+            rows={3}
+          />
+        </TabsContent>
+
+        <TabsContent
+          value="github"
+          className="space-y-4 focus-visible:outline-none"
+        >
+          {loadingActivities ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-yellow-500" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">
+              {githubActivities.map((activity) => (
+                <GitHubActivityCard
+                  key={activity.id}
+                  activity={activity}
+                  isSelected={selectedActivity?.id === activity.id}
                   onClick={() => selectActivity(activity)}
-                >
-                  <p className="text-white">{activity.metadata.title}</p>
-                  <p className="text-slate-500 text-xs">
-                    {new Date(activity.createdAt || "").toLocaleString()}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-slate-400 text-sm">No activities found.</p>
-            )}
-          </div>
-        )}
+                />
+              ))}
+            </div>
+          )}
+
+          {selectedActivity && (
+            <div className="space-y-2">
+              <div className="p-2 bg-slate-800/50 rounded border border-slate-700">
+                <p className="text-sm text-slate-400">Selected activity:</p>
+                <p className="text-white font-medium">
+                  {selectedActivity.metadata.title}
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  {selectedActivity.metadata.repo}
+                </p>
+              </div>
+
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white"
+                placeholder="Add a note about this activity..."
+                rows={2}
+              />
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+
+      <div className="flex justify-end">
+        <Button
+          onClick={createTrace}
+          disabled={isSubmitting || !content.trim()}
+          className="bg-slate-800 hover:bg-slate-700"
+        >
+          {isSubmitting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4 mr-2" />
+          )}
+          {isSubmitting ? "Creating..." : "Create Trace"}
+        </Button>
       </div>
     </DialogContent>
   );

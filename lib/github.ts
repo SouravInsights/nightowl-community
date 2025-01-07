@@ -27,6 +27,7 @@ export async function getGitHubActivity(
 
     return events.map(
       (event): GitHubActivity => ({
+        id: event.id,
         userId,
         type: "github",
         content: formatGitHubEvent(event as GitHubEvent),

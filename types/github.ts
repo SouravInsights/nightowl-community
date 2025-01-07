@@ -4,6 +4,7 @@ type OctokitResponse = Awaited<
   ReturnType<Octokit["rest"]["activity"]["listPublicEventsForUser"]>
 >;
 export type GitHubEvent = OctokitResponse["data"][0] & {
+  id: string;
   type: string;
   created_at: string;
   payload: {
@@ -17,6 +18,7 @@ export type GitHubEvent = OctokitResponse["data"][0] & {
 };
 
 export interface GitHubActivity {
+  id: string;
   userId: string;
   type: "github";
   content: string;
