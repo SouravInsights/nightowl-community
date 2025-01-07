@@ -37,8 +37,23 @@ export function TraceCard({ trace }: TraceCardProps) {
           <div className="mt-3 p-2 bg-slate-800/50 rounded-md">
             <div className="flex items-center space-x-2 text-sm text-slate-300">
               <TraceIcon />
-              <span>{trace.metadata.title}</span>
+              <span className="font-semibold">{trace.metadata.title}</span>
             </div>
+            {trace.type === "github" && (
+              <div className="mt-2 text-sm text-slate-400">
+                <p>
+                  Repository: {trace.metadata.repository || trace.metadata.repo}
+                </p>
+                <a
+                  href={`https://github.com/${trace.metadata.repo}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  View on GitHub
+                </a>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

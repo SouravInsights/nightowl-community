@@ -5,6 +5,7 @@ export interface TraceMetadata {
   url?: string;
   artist?: string;
   repository?: string;
+  repo?: string;
 }
 
 export interface Trace {

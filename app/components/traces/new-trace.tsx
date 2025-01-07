@@ -54,7 +54,7 @@ export default function NewTrace() {
 
   // When user selects an activity, pre-fill the trace content
   const selectActivity = (activity: GitHubActivity) => {
-    setContent(activity.content);
+    setContent(activity.metadata.title);
     setSelectedActivity(activity);
     setShowGitHubActivity(false);
   };
@@ -73,6 +73,11 @@ export default function NewTrace() {
         body: JSON.stringify({
           content,
           type: selectedActivity ? "github" : "manual",
+          metadata: {
+            title: selectedActivity?.metadata?.title || "",
+            repo: selectedActivity?.metadata?.repo || "",
+            url: selectedActivity?.metadata?.url || "",
+          },
         }),
       });
 
@@ -103,7 +108,7 @@ export default function NewTrace() {
             <p className="text-sm text-slate-400">
               <strong>Selected Activity:</strong>
             </p>
-            <p className="text-white">{selectedActivity.content}</p>
+            <p className="text-white">{selectedActivity.metadata.title}</p>
             <p className="text-slate-500 text-xs">
               {new Date(selectedActivity.createdAt || "").toLocaleString()}
             </p>
@@ -168,7 +173,7 @@ export default function NewTrace() {
                   className="p-2 hover:bg-slate-700 rounded-md cursor-pointer"
                   onClick={() => selectActivity(activity)}
                 >
-                  <p className="text-white">{activity.content}</p>
+                  <p className="text-white">{activity.metadata.title}</p>
                   <p className="text-slate-500 text-xs">
                     {new Date(activity.createdAt || "").toLocaleString()}
                   </p>

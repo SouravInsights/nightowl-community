@@ -26,7 +26,8 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { type, content } = await req.json();
+    const { type, content, metadata } = await req.json();
+    console.log("metadata:", metadata);
 
     const trace = await db
       .insert(traces)
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
         userId: user.id,
         type,
         content,
-        metadata: {},
+        metadata: metadata || {},
       })
       .returning();
 
