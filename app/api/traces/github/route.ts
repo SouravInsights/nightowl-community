@@ -1,6 +1,4 @@
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
-import { db } from "@/db";
-import { traces } from "@/db/schema";
 import { getGitHubActivity } from "@/lib/github";
 import { NextResponse } from "next/server";
 import { Octokit } from "octokit";
@@ -23,16 +21,12 @@ export async function POST() {
       );
     }
 
-    // Get the token using Clerk's OAuth API
     const clerk = await clerkClient();
     const tokenResponse = await clerk.users.getUserOauthAccessToken(
       user.id,
       "oauth_github"
     );
 
-    console.log("GitHub OAuth response:", tokenResponse);
-
-    // Get the first token from the data array
     const token = tokenResponse.data[0]?.token;
 
     if (!token) {
@@ -42,10 +36,7 @@ export async function POST() {
       );
     }
 
-    // Try getting the authenticated user first to test token
-    const octokit = new Octokit({
-      auth: token,
-    });
+    const octokit = new Octokit({ auth: token });
 
     try {
       const { data: authUser } = await octokit.rest.users.getAuthenticated();
@@ -64,9 +55,7 @@ export async function POST() {
       token
     );
 
-    const newTraces = await db.insert(traces).values(activities).returning();
-
-    return NextResponse.json({ traces: newTraces });
+    return NextResponse.json({ traces: activities });
   } catch (error) {
     console.error("GitHub trace error:", error);
     return NextResponse.json(
